@@ -1,0 +1,23 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Administrador",
+      "email": "admin@brechocuritiba.com",
+      "password": "$2a$10$f/puCUVSX6Jakr0MHuZgb.EZ7qgyIIPLnu4f9m2DLk4yVO.o3y7IS",
+      "isAdmin": true,
+      "createdAt": "2026-09-15T15:25:49.677Z"
+    }
+  ],
+  "products": [],
+  "favorites": [],
+  "cart": [],
+  "settings": {
+    "whatsapp": "5541999999999",
+    "instagram": "https://instagram.com/",
+    "logoUrl": "/uploads/logo/logo-1790089167648.png",
+    "nomeLoja": "Brechó Curitiba"
+  },
+  "nextId": 8,
+  "orders": []
+}

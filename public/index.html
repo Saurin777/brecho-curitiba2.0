@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brechó Curitiba - Roupas com história</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-pagina="inicio">
+  <header class="header" id="cabecalho"></header>
+
+  <main class="container">
+    <div class="layout-loja">
+
+      <!-- ---------- Coluna da esquerda: filtro de categorias ---------- -->
+      <aside class="barra-lateral">
+        <button class="btn-abrir-filtros" id="btnAbrirFiltros" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          Filtrar por categoria
+          <span class="badge-filtros" id="badgeFiltros" style="display:none">0</span>
+        </button>
+
+        <div class="painel-lateral" id="painelLateral">
+          <div class="bloco-filtro">
+            <div class="cabecalho-filtro">
+              <span class="rotulo-bloco">Categorias</span>
+              <button type="button" class="link-limpar" id="btnLimparFiltros">Limpar</button>
+            </div>
+            <div id="listaCategorias" class="lista-categorias"></div>
+          </div>
+
+          <p class="contagem-resultados" id="contagemResultados"></p>
+        </div>
+      </aside>
+
+      <!-- ---------- Coluna da direita: vitrine ---------- -->
+      <div class="conteudo-loja">
+        <section id="secaoDestaques" class="secao-destaques">
+          <div class="cabecalho-destaques">
+            <h1 class="titulo-secao titulo-destaques">Peças em destaque</h1>
+            <p class="subtitulo-secao">As melhores peças da nossa coleção, escolhidas a dedo para você ✨</p>
+          </div>
+          <div class="carrossel-destaques">
+            <button type="button" class="seta-carrossel seta-esquerda seta-oculta" id="setaDestaqueEsq" aria-label="Ver peças em destaque anteriores">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div id="listaProdutos" class="grade-produtos grade-destaques"></div>
+            <button type="button" class="seta-carrossel seta-direita" id="setaDestaqueDir" aria-label="Ver mais peças em destaque">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+          <div id="estadoVazioDestaque" class="estado-vazio" style="display:none;">
+            Nenhuma peça em destaque no momento. Volte em breve!
+          </div>
+        </section>
+
+        <h2 class="titulo-secao" id="tituloTodos" style="margin-top:48px;">Todas as peças</h2>
+        <p class="subtitulo-secao" id="subtituloTodos">Dá uma olhada em tudo que temos por aqui 🧡</p>
+        <div id="listaTodosProdutos" class="grade-produtos"></div>
+        <div id="estadoVazioTodos" class="estado-vazio" style="display:none;">
+          Ainda não temos peças cadastradas.
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="rodape"></div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/status.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

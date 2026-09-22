@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Admin - Brechó Curitiba</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="header" id="cabecalho"></header>
+
+  <main class="container">
+    <h1 class="titulo-secao">Painel administrativo</h1>
+    <p class="subtitulo-secao">Gerencie as peças e as configurações da loja</p>
+
+    <div id="areaAdmin" style="display:none;">
+      <div class="admin-tabs">
+        <button class="tab-btn ativa" data-tab="novaPeca">Nova peça</button>
+        <button class="tab-btn" data-tab="pecasCadastradas">Peças cadastradas</button>
+        <button class="tab-btn" data-tab="configuracoes">Configurações da loja</button>
+      </div>
+
+      <!-- ===== ABA NOVA PEÇA ===== -->
+      <section class="admin-secao ativa" id="secaoNovaPeca">
+        <div class="card-form-admin">
+          <h2 id="tituloFormProduto" style="margin-top:0;">Nova peça</h2>
+          <form id="formProduto">
+            <input type="hidden" id="produtoEditandoId" value="">
+            <div class="grid-2">
+              <div class="campo">
+                <label for="nome">Nome</label>
+                <input type="text" id="nome" required>
+              </div>
+              <div class="campo">
+                <label for="categoria">Categoria</label>
+                <select id="categoria">
+                  <option value="">Selecione...</option>
+                  <option value="Calça">Calça</option>
+                  <option value="Camisa">Camisa</option>
+                  <option value="Blusa">Blusa</option>
+                  <option value="Bolsa">Bolsa</option>
+                  <option value="Acessórios">Acessórios</option>
+                  <option value="Jaquetas">Jaquetas</option>
+                  <option value="Corset">Corset</option>
+                  <option value="Shorts">Shorts</option>
+                  <option value="Saia">Saia</option>
+                  <option value="Bermuda">Bermuda</option>
+                  <option value="Vestidos">Vestidos</option>
+                  <option value="Casacos">Casacos</option>
+                  <option value="Tricô">Tricô</option>
+                  <option value="Básicas">Básicas</option>
+                  <option value="Calçados">Calçados</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+            </div>
+            <div class="campo">
+              <label for="descricao">Descrição</label>
+              <textarea id="descricao" rows="3"></textarea>
+            </div>
+            <div class="campo">
+              <label for="preco">Preço (R$)</label>
+              <input type="number" id="preco" step="0.01" min="0" required style="max-width:260px;">
+            </div>
+            <div class="campo">
+              <label>Tamanhos e estoque</label>
+              <div id="areaTamanhos" class="area-tamanhos-admin">
+                <p class="aviso-tamanho">Selecione uma categoria para escolher os tamanhos.</p>
+              </div>
+            </div>
+            <div class="campo campo-destaque">
+              <label class="opcao-destaque" for="destaque">
+                <input type="checkbox" id="destaque">
+                <span class="opcao-destaque-icone" aria-hidden="true">★</span>
+                <span><strong>Destacar esta peça na página inicial</strong><small>Ative para exibir esta peça em destaque para os clientes.</small></span>
+              </label>
+            </div>
+            <div class="campo" id="campoFotosAtuais" style="display:none;">
+              <label>Fotos atuais</label>
+              <div id="areaFotosAtuais" class="area-fotos-atuais"></div>
+            </div>
+            <div class="campo">
+              <label for="imagens" id="labelImagens">Fotos (pode selecionar várias)</label>
+              <input type="file" id="imagens" accept="image/*" multiple>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button type="submit" class="btn btn-primario" id="btnSalvarProduto">Salvar peça</button>
+              <button type="button" class="btn btn-outline" id="btnCancelarEdicao" style="display:none;">Cancelar edição</button>
+            </div>
+          </form>
+        </div>
+
+      </section>
+
+      <!-- ===== ABA PEÇAS CADASTRADAS ===== -->
+      <section class="admin-secao" id="secaoPecasCadastradas">
+        <div class="cabecalho-lista-pecas">
+          <div>
+            <h2>Peças cadastradas</h2>
+            <p>Consulte, edite ou exclua as peças da loja.</p>
+          </div>
+          <button type="button" class="btn btn-primario" id="btnNovaPeca">Cadastrar nova peça</button>
+        </div>
+
+        <div class="barra-acoes-lote" id="barraAcoesLote" style="display:none;">
+          <span id="contadorSelecionados">0 selecionadas</span>
+          <button type="button" class="btn btn-perigo" id="btnExcluirSelecionados">Excluir selecionadas</button>
+        </div>
+
+        <table class="tabela-admin">
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="checkTodos" title="Selecionar todas"></th>
+              <th>Foto</th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Preço</th>
+              <th>Destaque</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabelaProdutos"></tbody>
+        </table>
+      </section>
+
+      <!-- ===== ABA CONFIGURAÇÕES ===== -->
+      <section class="admin-secao" id="secaoConfiguracoes">
+        <div class="card-form-admin">
+          <h2 style="margin-top:0;">Dados da loja</h2>
+          <div id="mensagemConfigSucesso" class="mensagem-sucesso" style="display:none;"></div>
+          <form id="formConfiguracoes">
+            <div class="campo">
+              <label for="nomeLoja">Nome da loja</label>
+              <input type="text" id="nomeLoja">
+            </div>
+            <div class="grid-2">
+              <div class="campo">
+                <label for="whatsapp">WhatsApp (só números, com DDI+DDD)</label>
+                <input type="text" id="whatsapp" placeholder="Ex: 5541999999999">
+              </div>
+              <div class="campo">
+                <label for="instagram">Link do Instagram</label>
+                <input type="text" id="instagram" placeholder="https://instagram.com/sualoja">
+              </div>
+            </div>
+            <div class="campo">
+              <label for="logo">Trocar logo</label>
+              <input type="file" id="logo" accept="image/*">
+            </div>
+            <button type="submit" class="btn btn-primario">Salvar configurações</button>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <div id="avisoAcesso" class="aviso-admin" style="display:none;">
+      Esta área é restrita ao administrador da loja.
+    </div>
+  </main>
+
+  <div id="rodape"></div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/status.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

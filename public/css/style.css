@@ -2132,3 +2132,182 @@ body.sem-rolagem { overflow: hidden; }
   body[data-pagina="inicio"] .grade-produtos { gap: 8px; }
   body[data-pagina="inicio"] .card-produto .info { padding: 8px; }
 }
+
+
+/* ==========================================================================
+   AJUSTE MOBILE — cabeçalho em uma única linha de navegação
+   ========================================================================== */
+@media (max-width: 760px) {
+  /* Primeira linha: saudação + logo/nome, tudo centralizado */
+  .header-inner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 10px 8px 11px;
+  }
+
+  .saudacao-usuario {
+    order: 1;
+    font-size: clamp(0.76rem, 3.7vw, 0.92rem);
+    line-height: 1;
+  }
+
+  .logo-area {
+    order: 2;
+    gap: 6px;
+    font-size: clamp(1rem, 4.7vw, 1.28rem);
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+
+  .logo-area img {
+    width: 48px;
+    height: 48px;
+    padding: 3px;
+  }
+
+  .logo-nome {
+    white-space: nowrap;
+  }
+
+  /* Navegação: TODOS os itens na mesma linha e centralizados */
+  .nav-links {
+    order: 4;
+    width: 100%;
+    margin-left: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .nav-links a,
+  .nav-links button {
+    flex: 0 0 auto;
+    justify-content: center;
+    font-size: clamp(0.68rem, 3vw, 0.78rem);
+    line-height: 1;
+    gap: 3px;
+    padding: 2px 3px;
+  }
+
+  .nav-links .icon-link {
+    width: 27px;
+    min-width: 27px;
+    padding: 2px 1px;
+  }
+
+  .nav-links .icon-link svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* O gatilho "Pedidos" possui padding inline no HTML; sobrescrevemos
+     para ele caber na mesma linha dos demais itens. */
+  .nav-links .menu-admin {
+    flex: 0 0 auto;
+  }
+
+  .nav-links .menu-admin-gatilho {
+    padding: 2px 3px !important;
+    font-size: clamp(0.68rem, 3vw, 0.78rem);
+  }
+
+  .nav-links .menu-admin-seta {
+    width: 13px;
+    height: 13px;
+  }
+
+  .nav-links .btn-sair {
+    padding: 2px 3px;
+    font-size: clamp(0.68rem, 3vw, 0.78rem);
+  }
+
+  .nav-links .btn-sair svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Instagram e WhatsApp continuam na mesma linha */
+  .social-icons {
+    display: contents;
+  }
+
+  .social-icons a {
+    flex: 0 0 29px;
+    width: 29px;
+    height: 29px;
+    min-width: 29px;
+  }
+
+  .social-icons svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Ao rolar, permanece somente logo + nome, como já definido */
+  .header.compacto-scroll .header-inner {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0;
+    padding: 6px 10px;
+  }
+}
+
+/* Em aparelhos muito estreitos, reduzir somente o necessário para
+   preservar a linha única da navegação. */
+@media (max-width: 380px) {
+  .header-inner {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .saudacao-usuario {
+    font-size: 0.72rem;
+  }
+
+  .logo-area {
+    gap: 5px;
+    font-size: 0.98rem;
+  }
+
+  .logo-area img {
+    width: 43px;
+    height: 43px;
+  }
+
+  .nav-links {
+    gap: 2px;
+  }
+
+  .nav-links a,
+  .nav-links button,
+  .nav-links .menu-admin-gatilho,
+  .nav-links .btn-sair {
+    font-size: 0.65rem;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .nav-links .icon-link {
+    width: 25px;
+    min-width: 25px;
+  }
+
+  .nav-links .icon-link svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .social-icons a {
+    flex-basis: 27px;
+    width: 27px;
+    min-width: 27px;
+    height: 27px;
+  }
+}

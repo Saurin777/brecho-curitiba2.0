@@ -335,17 +335,9 @@ async function iniciarFeed() {
   montarListaCategorias();
   ativarControlesFiltro();
   aplicarFiltros();
-  setInterval(async () => {
-    try {
-      const [destaquesNovos, todosNovos] = await Promise.all([
-        apiFetch('/api/produtos?featured=1'), apiFetch('/api/produtos')
-      ]);
-      produtosDestaque = destaquesNovos || [];
-      todosProdutos = todosNovos || [];
-      montarListaCategorias();
-      aplicarFiltros();
-    } catch (e) { /* mantém a vitrine atual se a rede oscilar */ }
-  }, 5000);
+  // A vitrine NÃO fica sendo recarregada em intervalos curtos.
+  // Isso evita o "pisca-pisca" no celular. A atualização automática em tempo
+  // real fica reservada ao status da logo (status.js).
 }
 
 iniciarFeed();

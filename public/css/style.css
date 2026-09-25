@@ -2311,3 +2311,29 @@ body.sem-rolagem { overflow: hidden; }
     height: 27px;
   }
 }
+
+/* ========================================================================
+   CORREÇÃO MOBILE — menus Admin/Pedidos não podem ser cortados pelo nav
+   ======================================================================== */
+@media (max-width: 760px) {
+  .nav-links {
+    overflow: visible !important;
+    position: relative;
+  }
+
+  .nav-links .menu-admin {
+    position: relative;
+    z-index: 1001;
+  }
+
+  .nav-links .menu-admin-lista {
+    z-index: 1100;
+    right: 0;
+    top: calc(100% + 2px);
+  }
+
+  .nav-links .menu-admin-caixa {
+    min-width: 190px;
+    max-width: min(240px, calc(100vw - 24px));
+  }
+}

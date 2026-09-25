@@ -36,9 +36,9 @@ function renderizarCardProduto(produto) {
         </button>
       </div>
       <div class="info">
-        <div class="categoria">${produto.category || ''}</div>
+        ${produto.vendida ? '' : `<div class="categoria">${produto.category || ''}</div>`}
         <div class="nome">${produto.name}</div>
-        <div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>
+        ${produto.vendida ? '' : `<div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>`}
         ${produto.vendida ? '' : `<a href="/produto.html?id=${produto.id}" class="btn btn-primario btn-bloco">Ver detalhes</a>`}
       </div>
     </div>

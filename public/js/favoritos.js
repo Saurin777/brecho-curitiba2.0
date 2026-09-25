@@ -9,20 +9,22 @@ function renderizarCardFavorito(produto) {
     ? `<span class="selo-destaque">${ICONES.estrela || '★'} Destaque</span>`
     : '';
 
+  const vendida = !!produto.vendida;
   return `
-    <div class="card-produto ${ehDestaque ? 'card-produto--destaque' : ''}" data-id="${produto.id}">
+    <div class="card-produto ${ehDestaque ? 'card-produto--destaque' : ''} ${vendida ? 'card-produto--vendida' : ''}" data-id="${produto.id}">
       <div class="imagem-wrap">
         ${imagem}
+        ${vendida ? '<div class="camada-vendida"></div><span class="selo-vendida" aria-label="VENDIDO">VENDIDO</span>' : ''}
         ${selo}
         <button class="btn-favorito ativo" data-id="${produto.id}" title="Remover dos favoritos">
           ${ICONES.coracao}
         </button>
       </div>
       <div class="info">
-        <div class="categoria">${produto.category || ''}</div>
+        ${vendida ? '' : `<div class="categoria">${produto.category || ''}</div>`}
         <div class="nome">${produto.name}</div>
-        <div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>
-        <a href="/produto.html?id=${produto.id}" class="btn btn-primario btn-bloco">Ver detalhes</a>
+        ${vendida ? '' : `<div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>`}
+        ${vendida ? '' : `<a href="/produto.html?id=${produto.id}" class="btn btn-primario btn-bloco">Ver detalhes</a>`}
       </div>
     </div>
   `;

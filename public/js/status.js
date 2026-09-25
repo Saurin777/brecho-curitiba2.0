@@ -241,18 +241,20 @@ function mostrarTela() {
 function atualizarRodapeStatus(item) {
   const rodape = document.getElementById('statusRodape');
   if (!rodape) return;
-  rodape.innerHTML = `
-    ${item.vendida ? '<div class="status-info status-info-vendida">' : `<a class="status-info" href="/produto.html?id=${item.id}">`}
-      ${item.category ? `<span class="status-categoria">${item.category}</span>` : ''}
-      <strong class="status-nome">${item.name}</strong>
-      <span class="status-preco">${
-        emPromocao(item)
-          ? `<s class="status-preco-antigo">${formatarPreco(item.promo.originalPrice)}</s> ${formatarPreco(item.price)} <span class="status-selo-promo">-${percentualDesconto(item)}%</span>`
-          : formatarPreco(item.price)
-      }</span>
-    ${item.vendida ? '</div>' : '</a>'}
-    ${item.vendida ? '' : `<a class="status-cta" href="/produto.html?id=${item.id}">Ver peça</a>`}
-  `;
+  rodape.innerHTML = item.vendida
+    ? `<div class="status-info status-info-vendida"><strong class="status-nome">${item.name}</strong></div>`
+    : `
+      <a class="status-info" href="/produto.html?id=${item.id}">
+        ${item.category ? `<span class="status-categoria">${item.category}</span>` : ''}
+        <strong class="status-nome">${item.name}</strong>
+        <span class="status-preco">${
+          emPromocao(item)
+            ? `<s class="status-preco-antigo">${formatarPreco(item.promo.originalPrice)}</s> ${formatarPreco(item.price)} <span class="status-selo-promo">-${percentualDesconto(item)}%</span>`
+            : formatarPreco(item.price)
+        }</span>
+      </a>
+      <a class="status-cta" href="/produto.html?id=${item.id}">Ver peça</a>
+    `;
 }
 
 function barraAtual() {

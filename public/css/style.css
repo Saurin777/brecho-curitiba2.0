@@ -1961,3 +1961,174 @@ body.sem-rolagem { overflow: hidden; }
   .caixa-editor-cliente { padding: 22px 18px 18px; }
   .caixa-editor-cliente .grid-2 { grid-template-columns: 1fr; }
 }
+
+
+/* ========================================================================
+   MOBILE — cabeçalho compacto e vitrine proporcional
+   ======================================================================== */
+.card-produto--vendida .categoria,
+.card-produto--vendida .preco,
+.card-produto--vendida .preco-em-promocao,
+.card-produto--vendida .selo-promocao-card,
+.card-produto--vendida .btn,
+.card-produto--vendida .selo-destaque {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .header-inner {
+    padding: 9px 14px 10px;
+    gap: 8px 12px;
+  }
+
+  .saudacao-usuario {
+    order: 1;
+    font-size: 0.82rem;
+    line-height: 1.1;
+  }
+
+  .logo-area {
+    order: 2;
+    gap: 8px;
+    font-size: clamp(1rem, 4.5vw, 1.22rem);
+    min-width: 0;
+  }
+  .logo-area img {
+    width: 46px;
+    height: 46px;
+    padding: 3px;
+  }
+  .logo-nome { white-space: nowrap; }
+
+  .busca-topo {
+    display: none;
+  }
+
+  .nav-links {
+    order: 4;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    gap: 10px 14px;
+    flex-wrap: wrap;
+  }
+  .nav-links a,
+  .nav-links button {
+    font-size: 0.84rem;
+    gap: 4px;
+  }
+  .nav-links .icon-link svg { width: 22px; height: 22px; }
+  .social-icons { gap: 8px; }
+  .social-icons a { width: 34px; height: 34px; }
+  .social-icons svg { width: 17px; height: 17px; }
+
+  /* Depois de rolar: fica literalmente só a marca, sem navegação, busca,
+     saudação ou ícones sociais. */
+  .header.compacto-scroll .header-inner {
+    min-height: 58px;
+    padding: 6px 14px;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: nowrap;
+  }
+  .header.compacto-scroll .saudacao-usuario,
+  .header.compacto-scroll .busca-topo,
+  .header.compacto-scroll .nav-links {
+    display: none;
+  }
+  .header.compacto-scroll .logo-area {
+    order: initial;
+    margin: 0 auto;
+    font-size: clamp(1rem, 4.5vw, 1.18rem);
+  }
+  .header.compacto-scroll .logo-area img {
+    width: 42px;
+    height: 42px;
+  }
+
+  body[data-pagina="inicio"] .container {
+    padding: 14px 12px 42px;
+  }
+  body[data-pagina="inicio"] .layout-loja { gap: 0; }
+  body[data-pagina="inicio"] .barra-lateral { margin-bottom: 12px; }
+  body[data-pagina="inicio"] .btn-abrir-filtros {
+    padding: 10px 13px;
+    margin-bottom: 10px;
+    font-size: 0.82rem;
+  }
+  body[data-pagina="inicio"] .secao-destaques {
+    padding: 18px 12px 20px;
+    margin-bottom: 4px;
+    border-radius: 16px;
+  }
+  body[data-pagina="inicio"] .titulo-destaques,
+  body[data-pagina="inicio"] .titulo-secao {
+    font-size: 1.18rem;
+  }
+  body[data-pagina="inicio"] .secao-destaques .subtitulo-secao,
+  body[data-pagina="inicio"] .subtitulo-secao {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin-bottom: 15px;
+  }
+  body[data-pagina="inicio"] .grade-produtos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  body[data-pagina="inicio"] .grade-destaques.grade-produtos .card-produto {
+    flex: 0 0 min(44vw, 190px);
+  }
+  body[data-pagina="inicio"] .card-produto {
+    border-radius: 12px;
+  }
+  body[data-pagina="inicio"] .card-produto .imagem-wrap {
+    aspect-ratio: 4 / 5;
+  }
+  body[data-pagina="inicio"] .card-produto .info {
+    padding: 9px 10px 10px;
+    gap: 2px;
+  }
+  body[data-pagina="inicio"] .card-produto .categoria {
+    font-size: 0.68rem;
+  }
+  body[data-pagina="inicio"] .card-produto .nome {
+    font-size: 0.79rem;
+    line-height: 1.25;
+  }
+  body[data-pagina="inicio"] .card-produto .preco {
+    font-size: 0.88rem;
+    margin-top: 4px;
+  }
+  body[data-pagina="inicio"] .card-produto .btn {
+    margin-top: 7px;
+    padding: 8px 9px;
+    font-size: 0.73rem;
+  }
+  body[data-pagina="inicio"] .btn-favorito {
+    top: 7px;
+    right: 7px;
+    width: 29px;
+    height: 29px;
+  }
+  body[data-pagina="inicio"] .btn-favorito svg { width: 15px; height: 15px; }
+  body[data-pagina="inicio"] .selo-destaque {
+    top: 7px;
+    left: 7px;
+    font-size: 0.56rem;
+    padding: 4px 7px;
+  }
+  body[data-pagina="inicio"] .selo-vendida {
+    font-size: clamp(0.82rem, 4vw, 1.15rem);
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .header-inner { padding-left: 10px; padding-right: 10px; }
+  .logo-area { font-size: 0.98rem; }
+  .logo-area img { width: 42px; height: 42px; }
+  .nav-links { gap: 8px 11px; }
+  .nav-links a, .nav-links button { font-size: 0.78rem; }
+  body[data-pagina="inicio"] .grade-produtos { gap: 8px; }
+  body[data-pagina="inicio"] .card-produto .info { padding: 8px; }
+}

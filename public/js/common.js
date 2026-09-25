@@ -141,15 +141,16 @@ async function montarCabecalho() {
   configurarMenuAdmin();
 
   const buscaMobile = document.getElementById('formBuscaTopo');
-  if (buscaMobile && window.matchMedia('(max-width: 760px)').matches) {
-    let ultimaRolagem = window.scrollY;
-    window.addEventListener('scroll', () => {
-      const atual = window.scrollY;
-      if (atual < 40) buscaMobile.classList.remove('busca-oculta');
-      else if (atual > ultimaRolagem + 1) buscaMobile.classList.add('busca-oculta');
-      else if (atual < ultimaRolagem - 1) buscaMobile.classList.remove('busca-oculta');
-      ultimaRolagem = atual;
-    }, { passive: true });
+  const cabecalho = document.getElementById('cabecalho');
+  if (cabecalho && window.matchMedia('(max-width: 760px)').matches) {
+    const atualizarCabecalhoMobile = () => {
+      // Ao sair do topo, o cabeçalho vira uma barra compacta: somente logo + nome.
+      cabecalho.classList.toggle('compacto-scroll', window.scrollY > 32);
+      if (buscaMobile && window.scrollY <= 32) buscaMobile.classList.remove('busca-oculta');
+    };
+    atualizarCabecalhoMobile();
+    window.addEventListener('scroll', atualizarCabecalhoMobile, { passive: true });
+    window.addEventListener('resize', atualizarCabecalhoMobile, { passive: true });
   }
 
   // Em páginas que não são a vitrine, a busca leva o termo para a home

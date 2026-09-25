@@ -13,6 +13,7 @@ let statusInicioTela = 0;
 let statusRestante = STATUS_DURACAO_MS;
 let statusPausado = false;
 let statusOverlay = null;
+let statusAtualizacaoTimer = null;
 
 // ---------- memória de "já vi esse status" ----------
 // A chave inclui a data de entrada no destaque: se a peça sair e voltar aos
@@ -67,12 +68,16 @@ async function iniciarStatusLogo() {
     statusItens = [];
   }
 
+  clearInterval(statusAtualizacaoTimer);
+  statusAtualizacaoTimer = setInterval(atualizarItensStatus, 5000);
+
   if (!statusItens.length) {
     anel.classList.remove('com-status', 'status-novo', 'status-visto');
     return;
   }
 
   atualizarAnel();
+
 
   botao.addEventListener('click', (e) => {
     if (!statusItens.length) return; // sem novidades: o clique segue para a home
@@ -83,6 +88,36 @@ async function iniciarStatusLogo() {
 
   botao.setAttribute('aria-label', `Ver novidades (${statusItens.length} peça(s) nova(s))`);
   botao.setAttribute('title', 'Novidades dos destaques');
+}
+
+async function atualizarItensStatus() {
+  try {
+    const atualizados = await apiFetch('/api/produtos/status');
+    const itemAtual = statusItens[statusIndice];
+    statusItens = atualizados;
+    let itemSaiuDaLista = false;
+    if (itemAtual) {
+      const novoIndice = statusItens.findIndex(item => String(item.id) === String(itemAtual.id));
+      if (novoIndice >= 0) statusIndice = novoIndice;
+      else {
+        itemSaiuDaLista = true;
+        statusIndice = Math.min(statusIndice, Math.max(statusItens.length - 1, 0));
+      }
+    }
+    const anel = document.getElementById('anelStatus');
+    if (!statusItens.length && anel) {
+      anel.classList.remove('com-status', 'status-novo', 'status-visto');
+      const badge = anel.parentElement.querySelector('.badge-status');
+      if (badge) badge.remove();
+      if (statusOverlay) fecharStatus();
+      return;
+    }
+    atualizarAnel();
+    if (statusOverlay && statusItens[statusIndice]) {
+      if (itemSaiuDaLista) mostrarTela();
+      else atualizarRodapeStatus(statusItens[statusIndice]);
+    }
+  } catch (e) { /* mantém o status carregado se a rede oscilar */ }
 }
 
 function atualizarAnel() {
@@ -180,25 +215,14 @@ function mostrarTela() {
   // A foto aparece inteira (sem esticar nem cortar). O fundo desfocado da própria
   // imagem preenche as sobras, do mesmo jeito que o Instagram faz nos stories.
   palco.innerHTML = item.image
-    ? `<div class="status-moldura">
+    ? `<div class="status-moldura ${item.vendida ? 'status-moldura--vendida' : ''}">
          <div class="status-fundo" style="background-image:url('${item.image}')"></div>
          <img class="status-imagem" src="${item.image}" alt="${item.name}">
+         ${item.vendida ? '<span class="status-selo-vendida">VENDIDA</span>' : ''}
        </div>`
-    : `<div class="status-sem-imagem"><span>${item.name}</span></div>`;
+    : `<div class="status-sem-imagem"><span>${item.name}</span>${item.vendida ? '<span class="status-selo-vendida">VENDIDA</span>' : ''}</div>`;
 
-  // tanto o texto quanto o botão levam para a publicação da peça
-  rodape.innerHTML = `
-    <a class="status-info" href="/produto.html?id=${item.id}">
-      ${item.category ? `<span class="status-categoria">${item.category}</span>` : ''}
-      <strong class="status-nome">${item.name}</strong>
-      <span class="status-preco">${
-        emPromocao(item)
-          ? `<s class="status-preco-antigo">${formatarPreco(item.promo.originalPrice)}</s> ${formatarPreco(item.price)} <span class="status-selo-promo">-${percentualDesconto(item)}%</span>`
-          : formatarPreco(item.price)
-      }</span>
-    </a>
-    <a class="status-cta" href="/produto.html?id=${item.id}">Ver peça</a>
-  `;
+  atualizarRodapeStatus(item);
 
   document.getElementById('statusTempo').textContent = tempoRelativo(item.featuredAt);
 
@@ -212,6 +236,23 @@ function mostrarTela() {
   salvarVisto(item);
   atualizarAnel();
   iniciarContagem(STATUS_DURACAO_MS);
+}
+
+function atualizarRodapeStatus(item) {
+  const rodape = document.getElementById('statusRodape');
+  if (!rodape) return;
+  rodape.innerHTML = `
+    ${item.vendida ? '<div class="status-info status-info-vendida">' : `<a class="status-info" href="/produto.html?id=${item.id}">`}
+      ${item.category ? `<span class="status-categoria">${item.category}</span>` : ''}
+      <strong class="status-nome">${item.name}</strong>
+      <span class="status-preco">${
+        emPromocao(item)
+          ? `<s class="status-preco-antigo">${formatarPreco(item.promo.originalPrice)}</s> ${formatarPreco(item.price)} <span class="status-selo-promo">-${percentualDesconto(item)}%</span>`
+          : formatarPreco(item.price)
+      }</span>
+    ${item.vendida ? '</div>' : '</a>'}
+    ${item.vendida ? '' : `<a class="status-cta" href="/produto.html?id=${item.id}">Ver peça</a>`}
+  `;
 }
 
 function barraAtual() {

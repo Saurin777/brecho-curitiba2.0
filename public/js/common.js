@@ -58,9 +58,45 @@ async function montarCabecalho() {
     ? `<button id="btnSair" class="btn-sair" title="Sair da conta">${ICONES.sair} Sair</button>`
     : `<a href="/login.html">${ICONES.usuario} Entrar</a>`;
 
+  // Admin: o menu "Admin" reúne "Pedidos/Vendas", "Histórico comp." e "Painel Admin",
+  // que abre ao passar o mouse (no celular, abre no primeiro toque).
   const linkAdmin = usuarioAtual && usuarioAtual.isAdmin
-    ? `<a href="/pedidos.html" class="btn btn-secundario" style="padding:8px 16px;">Pedidos/Vendas</a>
-       <a href="/admin.html" class="btn btn-secundario" style="padding:8px 16px;">Painel Admin</a>` : '';
+    ? `<div class="menu-admin" id="menuAdmin">
+         <a href="/admin.html" class="btn btn-secundario menu-admin-gatilho" style="padding:8px 16px;" aria-haspopup="true">
+           Admin
+           <svg class="menu-admin-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+         </a>
+         <span class="badge-contagem" data-badge-pedidos style="display:none">0</span>
+         <div class="menu-admin-lista">
+           <div class="menu-admin-caixa" role="menu">
+             <a href="/pedidos.html" role="menuitem">Pedidos/Vendas
+               <span class="badge-contagem badge-inline" data-badge-pedidos style="display:none">0</span>
+             </a>
+             <a href="/historico.html" role="menuitem">Histórico comp.</a>
+             <a href="/admin.html?aba=clientes" role="menuitem">Clientes</a>
+             <a href="/admin.html" role="menuitem">Painel Admin</a>
+           </div>
+         </div>
+       </div>` : '';
+
+  // Cliente comum: o menu "Pedidos" reúne "Pendentes" e "Histórico",
+  // que abre ao passar o mouse (no celular, abre no primeiro toque).
+  const linkMeusPedidos = usuarioAtual && !usuarioAtual.isAdmin
+    ? `<div class="menu-admin" id="menuPedidosCliente">
+         <a href="/meus-pedidos.html" class="btn btn-secundario menu-admin-gatilho" style="padding:8px 16px;" aria-haspopup="true">
+           Pedidos
+           <svg class="menu-admin-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+         </a>
+         <span class="badge-contagem" data-badge-pedidos style="display:none">0</span>
+         <div class="menu-admin-lista">
+           <div class="menu-admin-caixa" role="menu">
+             <a href="/meus-pedidos.html" role="menuitem">Pendentes
+               <span class="badge-contagem badge-inline" data-badge-pedidos style="display:none">0</span>
+             </a>
+             <a href="/historico.html" role="menuitem">Histórico</a>
+           </div>
+         </div>
+       </div>` : '';
   const saudacao = usuarioAtual
     ? `<span class="saudacao-usuario">Olá, ${escaparHtml(usuarioAtual.name.split(' ')[0])}!</span>` : '';
 
@@ -90,6 +126,7 @@ async function montarCabecalho() {
           ${ICONES.carrinho}
           <span class="badge-contagem" id="contagemCarrinho" style="display:none">0</span>
         </a>
+        ${linkMeusPedidos}
         ${linkAdmin}
         ${linkConta}
         <div class="social-icons">
@@ -99,6 +136,21 @@ async function montarCabecalho() {
       </nav>
     </div>
   `;
+
+  marcarAbaAtiva();
+  configurarMenuAdmin();
+
+  const buscaMobile = document.getElementById('formBuscaTopo');
+  if (buscaMobile && window.matchMedia('(max-width: 760px)').matches) {
+    let ultimaRolagem = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const atual = window.scrollY;
+      if (atual < 40) buscaMobile.classList.remove('busca-oculta');
+      else if (atual > ultimaRolagem + 1) buscaMobile.classList.add('busca-oculta');
+      else if (atual < ultimaRolagem - 1) buscaMobile.classList.remove('busca-oculta');
+      ultimaRolagem = atual;
+    }, { passive: true });
+  }
 
   // Em páginas que não são a vitrine, a busca leva o termo para a home
   const formBusca = document.getElementById('formBuscaTopo');
@@ -127,6 +179,52 @@ async function montarCabecalho() {
   }
 }
 
+// Menus suspensos (Admin / Pedidos do cliente): abrem por hover (CSS). Em
+// telas de toque não existe hover, então tocar no gatilho abre/fecha o menu.
+function configurarMenuAdmin() {
+  const menus = document.querySelectorAll('.menu-admin');
+  if (!menus.length) return;
+
+  menus.forEach(menu => {
+    const gatilho = menu.querySelector('.menu-admin-gatilho');
+    if (!gatilho) return;
+    gatilho.addEventListener('click', (e) => {
+      // O gatilho é só o título do menu: clicar/tocar abre ou fecha a lista (o hover abre no desktop)
+      e.preventDefault();
+      menu.classList.toggle('aberto');
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    menus.forEach(menu => {
+      if (!menu.contains(e.target)) menu.classList.remove('aberto');
+    });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') menus.forEach(menu => menu.classList.remove('aberto'));
+  });
+}
+
+// Destaca no menu a aba da página em que o usuário está (sublinhado + cor).
+function marcarAbaAtiva() {
+  let atual = window.location.pathname.replace(/\/+$/, '');
+  if (atual === '' || atual === '/') atual = '/index.html';
+  document.querySelectorAll('.nav-links a[href]').forEach(a => {
+    const href = a.getAttribute('href');
+    if (!href.startsWith('/') || href.startsWith('//')) return;
+    const destino = href.split(/[?#]/)[0];
+    const ativo = destino === atual;
+    a.classList.toggle('ativo', ativo);
+    if (ativo) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  // Se a página atual é um item do menu do admin, o "Admin" também fica destacado
+  const gatilho = document.querySelector('.menu-admin-gatilho');
+  if (gatilho && document.querySelector('.menu-admin-lista a.ativo')) {
+    gatilho.classList.add('ativo');
+  }
+}
+
 // O botão "Voltar" do navegador às vezes restaura a página de um cache congelado
 // (bfcache), sem executar o JS de novo — por isso os numerinhos do carrinho/favoritos
 // ficavam desatualizados. Isso força a atualização sempre que a página volta a ficar visível.
@@ -141,8 +239,16 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// Atualiza os numerinhos ao lado dos ícones de favoritos e carrinho no cabeçalho
+// Atualiza os numerinhos ao lado dos ícones de favoritos e carrinho, e o aviso
+// de novos pedidos ao lado de "Pedidos/Vendas" (só para o admin).
 async function atualizarBadgesContagem() {
+  await Promise.all([
+    atualizarBadgesFavoritosCarrinho(),
+    atualizarBadgePedidos()
+  ]);
+}
+
+async function atualizarBadgesFavoritosCarrinho() {
   const elFavoritos = document.getElementById('contagemFavoritos');
   const elCarrinho = document.getElementById('contagemCarrinho');
   if (!elFavoritos || !elCarrinho) return;
@@ -173,6 +279,41 @@ async function atualizarBadgesContagem() {
       elCarrinho.style.display = 'none';
     }
   } catch (e) { /* ignora falha ao atualizar contadores */ }
+}
+
+// Aviso de pedidos novos ainda não vistos: soma 1 a cada pedido que chegou
+// desde a última vez que o usuário abriu a aba (fica até ele clicar nela).
+async function atualizarBadgePedidos() {
+  const badges = document.querySelectorAll('[data-badge-pedidos]');
+  if (!badges.length) return;
+
+  const esconder = () => badges.forEach(b => { b.style.display = 'none'; });
+
+  if (!usuarioAtual) {
+    esconder();
+    return;
+  }
+
+  try {
+    const resposta = await apiFetch('/api/pedidos/notificacoes');
+    if (resposta && resposta.contagem > 0) {
+      badges.forEach(b => {
+        b.textContent = resposta.contagem;
+        b.style.display = 'flex';
+      });
+    } else {
+      esconder();
+    }
+  } catch (e) { /* ignora falha ao atualizar o aviso de pedidos */ }
+}
+
+// Marca os pedidos como vistos (chamado ao abrir "Pedidos/Vendas" ou "Pedidos
+// Pendentes") e some com o numerinho de aviso.
+async function marcarPedidosComoVistos() {
+  try {
+    await apiFetch('/api/pedidos/marcar-visto', { method: 'POST' });
+  } catch (e) { /* ignora */ }
+  await atualizarBadgePedidos();
 }
 
 function montarRodape() {
@@ -226,6 +367,55 @@ function contagemRegressiva(endsAt) {
   if (horas > 0) return `${horas}h ${String(minutos).padStart(2, '0')}min`;
   if (minutos > 0) return `${minutos}min ${String(segundos % 60).padStart(2, '0')}s`;
   return `${segundos}s`;
+}
+
+// Bloco de preço + cronômetro dos CARDS (feed, destaques, favoritos...), já
+// com o "container" que o cronômetro precisa pra se auto-atualizar sozinho.
+// Uso: `<div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>`
+function precoComCronometroCard(produto) {
+  return blocoPreco(produto) + cronometroCard(produto);
+}
+
+// Só aparece quando a promoção tem prazo definido (produto.promo.endsAt).
+function cronometroCard(produto) {
+  if (!emPromocao(produto) || !produto.promo.endsAt) return '';
+  return `
+    <div class="selo-promocao-card">
+      <span class="rotulo-promocao-card">🔥 Promoção</span>
+      <span class="mini-cronometro" data-ends="${produto.promo.endsAt}" data-id="${produto.id}">⏳ ${contagemRegressiva(produto.promo.endsAt) || ''}</span>
+    </div>
+  `;
+}
+
+// Quando o cronômetro de um card zera, o preço já voltou ao normal no servidor
+// (regra em db.js), então a gente busca a peça de novo e troca o preço no card
+// na hora — sem precisar dar F5 na página.
+async function atualizarPrecoCardExpirado(id) {
+  const container = document.getElementById(`precoCard-${id}`);
+  try {
+    const produto = await apiFetch(`/api/produtos/${id}`);
+    if (container) container.innerHTML = precoComCronometroCard(produto);
+  } catch (e) { /* se falhar, o cronômetro já mostra "Promoção encerrada" */ }
+}
+
+// Atualiza, a cada segundo, todos os mini-cronômetros visíveis na página
+// (funciona em qualquer lista, mesmo quando os cards são re-renderizados).
+if (!window.__cronometrosCardsAtivos) {
+  window.__cronometrosCardsAtivos = true;
+  setInterval(() => {
+    document.querySelectorAll('.mini-cronometro[data-ends]').forEach(el => {
+      const texto = contagemRegressiva(el.dataset.ends);
+      if (!texto) {
+        if (el.dataset.expirando) return; // já disparou a atualização, evita repetir
+        el.dataset.expirando = '1';
+        el.textContent = 'Promoção encerrada';
+        el.classList.add('mini-cronometro-encerrado');
+        atualizarPrecoCardExpirado(el.dataset.id);
+      } else {
+        el.textContent = `⏳ ${texto}`;
+      }
+    });
+  }, 1000);
 }
 
 // ---------- Notificações (substitui o alert() nativo do navegador) ----------

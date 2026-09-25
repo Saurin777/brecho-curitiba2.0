@@ -19,7 +19,8 @@ function defaultData() {
       whatsapp: '5541999999999',
       instagram: 'https://instagram.com/',
       logoUrl: '/img/logo-padrao.svg',
-      nomeLoja: 'Brechó Curitiba'
+      nomeLoja: 'Brechó Curitiba',
+      categorias: ['Calça', 'Camisa', 'Blusa', 'Bolsa', 'Acessórios', 'Jaquetas', 'Corset', 'Shorts', 'Saia', 'Bermuda', 'Vestidos', 'Casacos', 'Tricô', 'Básicas', 'Calçados', 'Outros']
     },
     nextId: 1
   };
@@ -35,8 +36,21 @@ function readDB() {
   ensureDB();
   const raw = fs.readFileSync(DB_PATH, 'utf-8');
   const data = JSON.parse(raw);
+  if (!data.settings) data.settings = defaultData().settings;
+  if (!Array.isArray(data.settings.categorias)) data.settings.categorias = defaultData().settings.categorias;
   // Migração leve: garante que bancos salvos antes da funcionalidade de pedidos não quebrem
   if (!Array.isArray(data.orders)) data.orders = [];
+
+  // Migração leve: usuários de antes do aviso de "pedidos novos" ganham um
+  // marco inicial agora, para não aparecer um número gigante com pedidos antigos.
+  let usuariosMudaram = false;
+  (data.users || []).forEach(u => {
+    if (u.lastPedidosSeenAt === undefined) {
+      u.lastPedidosSeenAt = new Date().toISOString();
+      usuariosMudaram = true;
+    }
+  });
+  if (usuariosMudaram) writeDB(data);
 
   // Migração leve: produtos cadastrados antes do "status" da logo não têm featuredAt.
   // Usamos a data de cadastro como referência, para que peças antigas não apareçam

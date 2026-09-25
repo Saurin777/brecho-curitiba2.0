@@ -11,6 +11,7 @@ const settingsRoutes = require('./routes/settings');
 const favoriteRoutes = require('./routes/favorites');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
+const userRoutes = require('./routes/users');
 
 seedIfEmpty(); // cria usuário admin e produtos de exemplo na primeira vez
 
@@ -33,6 +34,7 @@ app.use('/api/configuracoes', settingsRoutes);
 app.use('/api/favoritos', favoriteRoutes);
 app.use('/api/carrinho', cartRoutes);
 app.use('/api/pedidos', orderRoutes);
+app.use('/api/usuarios', userRoutes);
 
 // Tratamento de erros do multer/upload
 app.use((err, req, res, next) => {

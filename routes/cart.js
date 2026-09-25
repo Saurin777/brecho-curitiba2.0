@@ -1,6 +1,7 @@
 const express = require('express');
 const { readDB, writeDB, nextId } = require('../db');
 const { exigirLogin } = require('../middleware/auth');
+const { estaVendida, estoqueDoTamanho } = require('../estoque');
 
 const router = express.Router();
 
@@ -27,13 +28,29 @@ router.post('/', exigirLogin, (req, res) => {
   const db = readDB();
   const produto = db.products.find(p => p.id === Number(productId));
   if (!produto) return res.status(404).json({ erro: 'Produto não encontrado.' });
-  if (produto.soldAt) return res.status(409).json({ erro: 'Esta peça já foi vendida e não está mais disponível.' });
+  if (estaVendida(produto)) return res.status(409).json({ erro: 'Esta peça já foi vendida e não está mais disponível.' });
 
   const qtd = Math.max(1, parseInt(quantity, 10) || 1);
 
   const existente = db.cart.find(
     c => c.userId === req.user.id && c.productId === Number(productId) && c.size === size
   );
+
+  // Estoque do tamanho escolhido (null = peça sem numeração, não controla por tamanho)
+  const disponivel = estoqueDoTamanho(produto, size);
+  if (disponivel !== null) {
+    if (disponivel <= 0) {
+      return res.status(409).json({ erro: `O tamanho ${size} está esgotado.` });
+    }
+    const jaNoCarrinho = existente ? existente.quantity : 0;
+    if (jaNoCarrinho + qtd > disponivel) {
+      return res.status(409).json({
+        erro: disponivel === 1
+          ? `Só temos 1 unidade do tamanho ${size}.`
+          : `Só temos ${disponivel} unidades do tamanho ${size}.`
+      });
+    }
+  }
   if (existente) {
     existente.quantity += qtd;
   } else {
@@ -56,6 +73,16 @@ router.put('/:itemId', exigirLogin, (req, res) => {
   if (!item) return res.status(404).json({ erro: 'Item não encontrado no carrinho.' });
   const qtd = parseInt(req.body.quantity, 10);
   if (!qtd || qtd < 1) return res.status(400).json({ erro: 'Quantidade inválida.' });
+
+  const produto = db.products.find(p => p.id === item.productId);
+  const disponivel = produto ? estoqueDoTamanho(produto, item.size) : null;
+  if (disponivel !== null && qtd > disponivel) {
+    return res.status(409).json({
+      erro: disponivel <= 0
+        ? `O tamanho ${item.size} está esgotado.`
+        : `Só temos ${disponivel} ${disponivel === 1 ? 'unidade' : 'unidades'} do tamanho ${item.size}.`
+    });
+  }
   item.quantity = qtd;
   writeDB(db);
   res.json({ ok: true });

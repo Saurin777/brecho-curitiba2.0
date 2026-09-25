@@ -21,7 +21,7 @@ function renderizarCardFavorito(produto) {
       <div class="info">
         <div class="categoria">${produto.category || ''}</div>
         <div class="nome">${produto.name}</div>
-        ${blocoPreco(produto)}
+        <div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>
         <a href="/produto.html?id=${produto.id}" class="btn btn-primario btn-bloco">Ver detalhes</a>
       </div>
     </div>

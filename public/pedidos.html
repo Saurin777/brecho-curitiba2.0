@@ -16,6 +16,15 @@
 
     <div id="areaPedidosPagina" style="display:none;">
       <div id="resumoPedidos" class="resumo-pedidos-grid"></div>
+      <div class="filtro-pedidos" id="filtroPedidos">
+        <div class="campo-busca campo-filtro-pedidos">
+          <input type="search" id="filtroPedidosPeca" placeholder="Filtrar por nome da peça..." autocomplete="off">
+        </div>
+        <div class="campo-busca campo-filtro-pedidos">
+          <input type="search" id="filtroPedidosCliente" placeholder="Filtrar por nome do cliente..." autocomplete="off">
+        </div>
+        <button type="button" class="link-limpar" id="btnLimparFiltroPedidos">Limpar filtro</button>
+      </div>
       <div class="abas-pedidos" role="tablist">
         <button type="button" class="aba-pedidos ativa" data-aba="pendentes">
           <span>Pendentes</span><span class="aba-badge">0</span>

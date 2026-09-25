@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { readDB, writeDB, nextId } = require('../db');
 const { exigirAdmin } = require('../middleware/auth');
+const { estaVendida, estoqueTotal, temGradeDeTamanhos } = require('../estoque');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get('/status', (req, res) => {
   const limite = Date.now() - STATUS_DURACAO_HORAS * 60 * 60 * 1000;
 
   const itens = db.products
-    .filter(p => p.featured && p.featuredAt && new Date(p.featuredAt).getTime() > limite)
+    .filter(p => p.featured && p.featuredAt && new Date(p.featuredAt).getTime() > limite && (!estaVendida(p) || new Date(p.soldAt).getTime() > limite))
     .sort((a, b) => new Date(a.featuredAt) - new Date(b.featuredAt))
     .map(p => ({
       id: p.id,
@@ -60,7 +61,8 @@ router.get('/status', (req, res) => {
       category: p.category,
       promo: p.promo || null,
       image: (p.images && p.images[0]) || null,
-      featuredAt: p.featuredAt
+      featuredAt: p.featuredAt,
+      vendida: estaVendida(p)
     }));
 
   res.json(itens);
@@ -76,7 +78,7 @@ router.get('/', (req, res) => {
   // Depois disso sai da vitrine. Para o administrador, continua disponível para gestão/histórico.
   let produtos = ehAdmin
     ? db.products
-    : db.products.filter(p => !p.soldAt || agora - new Date(p.soldAt).getTime() < VENDA_EXIBICAO_MS);
+    : db.products.filter(p => !estaVendida(p) || agora - new Date(p.soldAt).getTime() < VENDA_EXIBICAO_MS);
 
   if (req.query.featured === '1') {
     produtos = produtos.filter(p => p.featured);
@@ -84,8 +86,10 @@ router.get('/', (req, res) => {
 
   produtos = produtos.map(p => ({
     ...p,
-    vendida: !!(p.soldAt && agora - new Date(p.soldAt).getTime() < VENDA_EXIBICAO_MS),
-    vendaExpiraEm: p.soldAt ? new Date(new Date(p.soldAt).getTime() + VENDA_EXIBICAO_MS).toISOString() : null
+    // VENDIDO só aparece quando o estoque de todos os tamanhos zerou
+    vendida: estaVendida(p) && agora - new Date(p.soldAt).getTime() < VENDA_EXIBICAO_MS,
+    esgotada: temGradeDeTamanhos(p) && estoqueTotal(p) === 0,
+    vendaExpiraEm: estaVendida(p) ? new Date(new Date(p.soldAt).getTime() + VENDA_EXIBICAO_MS).toISOString() : null
   }));
 
   res.json(produtos);
@@ -98,15 +102,17 @@ router.get('/:id', (req, res) => {
   if (!produto) return res.status(404).json({ erro: 'Produto não encontrado.' });
 
   const ehAdmin = !!(req.user && req.user.isAdmin);
-  const vendida = !!(produto.soldAt && Date.now() - new Date(produto.soldAt).getTime() < VENDA_EXIBICAO_MS);
-  if (!ehAdmin && produto.soldAt && !vendida) {
+  const vendidaDeVerdade = estaVendida(produto);
+  const vendida = vendidaDeVerdade && Date.now() - new Date(produto.soldAt).getTime() < VENDA_EXIBICAO_MS;
+  if (!ehAdmin && vendidaDeVerdade && !vendida) {
     return res.status(404).json({ erro: 'Esta peça não está mais disponível.' });
   }
 
   res.json({
     ...produto,
     vendida,
-    vendaExpiraEm: produto.soldAt ? new Date(new Date(produto.soldAt).getTime() + VENDA_EXIBICAO_MS).toISOString() : null
+    esgotada: temGradeDeTamanhos(produto) && estoqueTotal(produto) === 0,
+    vendaExpiraEm: vendidaDeVerdade ? new Date(new Date(produto.soldAt).getTime() + VENDA_EXIBICAO_MS).toISOString() : null
   });
 });
 
@@ -162,7 +168,14 @@ router.put('/:id', exigirAdmin, upload.array('images', 6), (req, res) => {
     produto.price = novoPreco;
   }
   if (category !== undefined) produto.category = category.trim();
-  if (sizes !== undefined) produto.sizes = parseSizes(sizes);
+  if (sizes !== undefined) {
+    produto.sizes = parseSizes(sizes);
+    // repôs estoque em algum tamanho: a peça volta a ficar disponível (some o VENDIDO)
+    if (produto.soldAt && temGradeDeTamanhos(produto) && estoqueTotal(produto) > 0) {
+      produto.soldAt = null;
+      produto.soldOrderId = null;
+    }
+  }
   if (featured !== undefined) {
     const novoDestaque = featured === 'true' || featured === true;
     if (novoDestaque && !produto.featured) {

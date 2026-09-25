@@ -19,6 +19,7 @@
         <button class="tab-btn ativa" data-tab="novaPeca">Nova peça</button>
         <button class="tab-btn" data-tab="pecasCadastradas">Peças cadastradas</button>
         <button class="tab-btn" data-tab="configuracoes">Configurações da loja</button>
+        <button class="tab-btn" data-tab="clientes">Clientes</button>
       </div>
 
       <!-- ===== ABA NOVA PEÇA ===== -->
@@ -34,25 +35,8 @@
               </div>
               <div class="campo">
                 <label for="categoria">Categoria</label>
-                <select id="categoria">
-                  <option value="">Selecione...</option>
-                  <option value="Calça">Calça</option>
-                  <option value="Camisa">Camisa</option>
-                  <option value="Blusa">Blusa</option>
-                  <option value="Bolsa">Bolsa</option>
-                  <option value="Acessórios">Acessórios</option>
-                  <option value="Jaquetas">Jaquetas</option>
-                  <option value="Corset">Corset</option>
-                  <option value="Shorts">Shorts</option>
-                  <option value="Saia">Saia</option>
-                  <option value="Bermuda">Bermuda</option>
-                  <option value="Vestidos">Vestidos</option>
-                  <option value="Casacos">Casacos</option>
-                  <option value="Tricô">Tricô</option>
-                  <option value="Básicas">Básicas</option>
-                  <option value="Calçados">Calçados</option>
-                  <option value="Outros">Outros</option>
-                </select>
+                <div class="categoria-controles"><select id="categoria"><option value="">Selecione...</option></select><button type="button" id="btnEditarCategorias" class="btn btn-secundario btn-lapis" aria-label="Editar categorias" title="Editar categorias">✎</button></div>
+                <div id="editorCategorias" class="editor-categorias" hidden><div id="listaEdicaoCategorias"></div><div class="adicionar-categoria"><input id="novaCategoria" type="text" maxlength="40" placeholder="Nova categoria"><button type="button" id="btnAdicionarCategoria" class="btn btn-secundario">Adicionar</button></div><button type="button" id="btnSalvarCategorias" class="btn btn-primario">Salvar categorias</button></div>
               </div>
             </div>
             <div class="campo">
@@ -124,6 +108,33 @@
         </table>
       </section>
 
+      <!-- ===== ABA CLIENTES ===== -->
+      <section class="admin-secao" id="secaoClientes">
+        <div class="cabecalho-lista-pecas">
+          <div>
+            <h2>Clientes</h2>
+            <p>Visualize as contas criadas e altere os dados de acesso quando necessário.</p>
+          </div>
+          <button type="button" class="btn btn-secundario" id="btnAtualizarClientes">Atualizar lista</button>
+        </div>
+
+        <div class="tabela-admin-wrap">
+          <table class="tabela-admin tabela-clientes">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Celular</th>
+                <th>Cadastro</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabelaClientes"></tbody>
+          </table>
+        </div>
+        <div id="clientesVazio" class="aviso-admin clientes-vazio" style="display:none;">Nenhum cliente cadastrado ainda.</div>
+      </section>
+
       <!-- ===== ABA CONFIGURAÇÕES ===== -->
       <section class="admin-secao" id="secaoConfiguracoes">
         <div class="card-form-admin">
@@ -149,6 +160,23 @@
               <input type="file" id="logo" accept="image/*">
             </div>
             <button type="submit" class="btn btn-primario">Salvar configurações</button>
+          </form>
+        </div>
+
+        <div class="card-form-admin">
+          <h2 style="margin-top:0;">Acesso do administrador</h2>
+          <p class="subtitulo-secao" style="margin-top:-8px;">Defina um novo e-mail e senha de login. Depois de salvar, o acesso padrão (admin@brechocuritiba.com / admin123) deixa de funcionar e só este novo e-mail e senha serão aceitos.</p>
+          <div id="mensagemAdminAcessoSucesso" class="mensagem-sucesso" style="display:none;"></div>
+          <form id="formAdminAcesso">
+            <div class="campo">
+              <label for="adminNovoEmail">Login (e-mail do administrador)</label>
+              <input type="email" id="adminNovoEmail" placeholder="novoemail@exemplo.com">
+            </div>
+            <div class="campo">
+              <label for="adminNovaSenha">Senha</label>
+              <input type="password" id="adminNovaSenha" placeholder="Mínimo de 6 caracteres" autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primario">Atualizar login e senha</button>
           </form>
         </div>
       </section>

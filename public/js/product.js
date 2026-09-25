@@ -1,6 +1,101 @@
 let produtoAtual = null;
 let tamanhoSelecionado = null;
 let timerPromocao = null;
+let favoritosIdsRelacionados = [];
+
+// ---------------------------------------------------------------------------
+// "Outras peças" — vitrine de produtos relacionados abaixo do produto atual,
+// para o cliente continuar navegando sem precisar voltar para o início.
+// Nunca mostra a própria peça que o cliente já está vendo.
+// ---------------------------------------------------------------------------
+function renderizarCardRelacionado(produto) {
+  const imagem = produto.images && produto.images[0]
+    ? `<img class="imagem-produto" src="${produto.images[0]}" alt="${escaparHtml(produto.name)}">`
+    : `<div class="sem-imagem">Sem foto ainda</div>`;
+
+  const ehFavorito = favoritosIdsRelacionados.includes(produto.id);
+  const ehDestaque = !!produto.featured;
+  const selo = ehDestaque ? `<span class="selo-destaque">${ICONES.estrela || '★'} Destaque</span>` : '';
+  const seloVendida = produto.vendida ? `<span class="selo-vendida" aria-label="VENDIDO">VENDIDO</span>` : '';
+
+  return `
+    <div class="card-produto ${ehDestaque ? 'card-produto--destaque' : ''} ${produto.vendida ? 'card-produto--vendida' : ''}" data-id="${produto.id}" ${produto.vendida ? '' : `role="link" tabindex="0" aria-label="Ver detalhes de ${escaparHtml(produto.name)}"`}>
+      <div class="imagem-wrap">
+        ${imagem}
+        ${produto.vendida ? `<div class="camada-vendida"></div>` : ''}
+        ${selo}
+        ${seloVendida}
+        <button class="btn-favorito ${ehFavorito ? 'ativo' : ''}" data-id="${produto.id}" title="Favoritar">
+          ${ICONES.coracao}
+        </button>
+      </div>
+      <div class="info">
+        <div class="categoria">${produto.category || ''}</div>
+        <div class="nome">${escaparHtml(produto.name)}</div>
+        ${blocoPreco(produto)}
+        ${produto.vendida ? '' : `<a href="/produto.html?id=${produto.id}" class="btn btn-primario btn-bloco">Ver detalhes</a>`}
+      </div>
+    </div>
+  `;
+}
+
+function ativarAcoesCardRelacionado(container) {
+  container.querySelectorAll('.card-produto:not(.card-produto--vendida)').forEach(card => {
+    const abrir = () => { window.location.href = `/produto.html?id=${card.dataset.id}`; };
+    card.addEventListener('click', e => { if (!e.target.closest('a, button')) abrir(); });
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
+  });
+  container.querySelectorAll('.card-produto .btn-bloco').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = link.getAttribute('href');
+    });
+  });
+  container.querySelectorAll('.btn-favorito').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!usuarioAtual) { window.location.href = '/login.html'; return; }
+      const id = Number(btn.dataset.id);
+      const ativo = btn.classList.contains('ativo');
+      try {
+        if (ativo) {
+          await apiFetch(`/api/favoritos/${id}`, { method: 'DELETE' });
+          favoritosIdsRelacionados = favoritosIdsRelacionados.filter(f => f !== id);
+        } else {
+          await apiFetch(`/api/favoritos/${id}`, { method: 'POST' });
+          favoritosIdsRelacionados.push(id);
+        }
+        document.querySelectorAll(`.btn-favorito[data-id="${id}"]`).forEach(b => b.classList.toggle('ativo', !ativo));
+        atualizarBadgesContagem();
+      } catch (err) {
+        mostrarNotificacao(err.message, 'erro');
+      }
+    });
+  });
+}
+
+async function carregarProdutosRelacionados(idAtual) {
+  const secao = document.getElementById('secaoRelacionados');
+  const grade = document.getElementById('gradeRelacionados');
+  if (!secao || !grade) return;
+
+  try {
+    const todos = await apiFetch('/api/produtos');
+    const outros = todos.filter(p => p.id !== idAtual);
+    if (!outros.length) return;
+
+    if (usuarioAtual) {
+      try {
+        const favoritos = await apiFetch('/api/favoritos');
+        favoritosIdsRelacionados = favoritos.map(f => f.id);
+      } catch (e) { /* ignora */ }
+    }
+
+    grade.innerHTML = outros.map(renderizarCardRelacionado).join('');
+    ativarAcoesCardRelacionado(grade);
+    secao.style.display = 'block';
+  } catch (e) { /* se falhar, simplesmente não mostra a seção */ }
+}
 
 // ---------------------------------------------------------------------------
 // Preço da peça + edição de promoção (o lápis só aparece para o administrador)
@@ -245,11 +340,19 @@ async function iniciarProduto() {
     tamanhoSelecionado = 'Único';
   }
 
-  const botoesTamanho = tamanhos.length ? tamanhos.map(([tam, qtd]) => `
-    <button class="tamanho-btn" data-tamanho="${tam}" data-qtd="${qtd}" ${qtd <= 0 || produtoVendido ? 'disabled' : ''}>
+  // Sem estoque em nenhum tamanho (ex.: última peça reservada): não dá para comprar
+  const semEstoque = tamanhos.length > 0 && tamanhos.every(([, qtd]) => Number(qtd) <= 0);
+  const compraBloqueada = produtoVendido || semEstoque;
+
+  // Tamanho zerado fica ofuscado e não pode ser clicado; os demais continuam livres
+  const botoesTamanho = tamanhos.length ? tamanhos.map(([tam, qtd]) => {
+    const esgotado = Number(qtd) <= 0 || produtoVendido;
+    return `
+    <button class="tamanho-btn ${esgotado ? 'tamanho-esgotado' : ''}" data-tamanho="${tam}" data-qtd="${qtd}" ${esgotado ? 'disabled aria-disabled="true" title="Tamanho esgotado"' : ''}>
       ${tam}
     </button>
-  `).join('') : '';
+  `;
+  }).join('') : '';
 
   container.innerHTML = `
     <div class="produto-detalhe">
@@ -274,17 +377,24 @@ async function iniciarProduto() {
         `}
 
         <div class="acoes-produto">
-          <button class="btn btn-primario" id="btnAdicionarCarrinho" ${produtoVendido ? 'disabled' : ''}>${produtoVendido ? 'Peça vendida' : `${ICONES.carrinho} Adicionar ao carrinho`}</button>
+          <button class="btn btn-primario" id="btnAdicionarCarrinho" ${compraBloqueada ? 'disabled' : ''}>${produtoVendido ? 'Peça vendida' : semEstoque ? 'Sem estoque' : `${ICONES.carrinho} Adicionar ao carrinho`}</button>
           <button class="btn ${ehFavorito ? 'btn-primario' : 'btn-secundario'}" id="btnFavoritar">
             ${ICONES.coracao} ${ehFavorito ? 'Nos favoritos' : 'Favoritar'}
           </button>
         </div>
       </div>
     </div>
+
+    <section id="secaoRelacionados" class="secao-relacionados" style="display:none;">
+      <h2 class="titulo-secao">Você também pode gostar</h2>
+      <p class="subtitulo-secao">Outras peças que temos por aqui 🧡</p>
+      <div id="gradeRelacionados" class="grade-produtos"></div>
+    </section>
   `;
 
   renderizarPreco();
   ativarZoomComMouse();
+  carregarProdutosRelacionados(produtoAtual.id);
 
   document.querySelectorAll('.tamanho-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -296,7 +406,7 @@ async function iniciarProduto() {
   });
 
   document.getElementById('btnAdicionarCarrinho').addEventListener('click', async () => {
-    if (produtoVendido) return;
+    if (compraBloqueada) return;
     if (!usuarioAtual) { window.location.href = '/login.html'; return; }
     if (!tamanhoSelecionado) { mostrarNotificacao('Selecione um tamanho disponível antes de continuar.', 'erro'); return; }
     try {

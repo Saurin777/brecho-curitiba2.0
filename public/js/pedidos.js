@@ -3,6 +3,56 @@ const ICONE_SETA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 
 let pedidosAdmin = [];
 let abaPedidosAtual = 'pendentes';
+let filtroPedidosPecaAtual = '';
+let filtroPedidosClienteAtual = '';
+
+function normalizarTextoFiltro(texto) {
+  return (texto || '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function pedidoCombinaFiltro(pedido) {
+  if (filtroPedidosPecaAtual) {
+    const nomesPecas = normalizarTextoFiltro((pedido.items || []).map(i => i.productName).join(' '));
+    if (!nomesPecas.includes(filtroPedidosPecaAtual)) return false;
+  }
+  if (filtroPedidosClienteAtual) {
+    const nomeCliente = normalizarTextoFiltro(pedido.customerName);
+    if (!nomeCliente.includes(filtroPedidosClienteAtual)) return false;
+  }
+  return true;
+}
+
+function filtroPedidosAtivo() {
+  return !!(filtroPedidosPecaAtual || filtroPedidosClienteAtual);
+}
+
+function montarFiltroPedidos() {
+  const campoPeca = document.getElementById('filtroPedidosPeca');
+  const campoCliente = document.getElementById('filtroPedidosCliente');
+  const btnLimpar = document.getElementById('btnLimparFiltroPedidos');
+  if (!campoPeca || !campoCliente) return;
+
+  campoPeca.addEventListener('input', () => {
+    filtroPedidosPecaAtual = normalizarTextoFiltro(campoPeca.value);
+    renderizarFila();
+  });
+  campoCliente.addEventListener('input', () => {
+    filtroPedidosClienteAtual = normalizarTextoFiltro(campoCliente.value);
+    renderizarFila();
+  });
+  btnLimpar.addEventListener('click', () => {
+    campoPeca.value = '';
+    campoCliente.value = '';
+    filtroPedidosPecaAtual = '';
+    filtroPedidosClienteAtual = '';
+    renderizarFila();
+  });
+}
 
 const STATUS_PEDIDO_LABEL = {
   aguardando: 'Aguardando confirmação',
@@ -77,14 +127,15 @@ function renderizarFila() {
   const area = document.getElementById('areaPedidos');
   if (!area) return;
 
-  const lista = pedidosAdmin.filter(p => abaPedidosAtual === 'pendentes' ? !p.resolvido : p.resolvido);
-  const vazia = abaPedidosAtual === 'pendentes'
-    ? 'Nenhum pedido pendente no momento.'
-    : 'Nenhum pedido resolvido ainda.';
+  const listaBase = pedidosAdmin.filter(p => abaPedidosAtual === 'pendentes' ? !p.resolvido : p.resolvido);
+  const lista = listaBase.filter(pedidoCombinaFiltro);
+  const vazia = filtroPedidosAtivo()
+    ? 'Nenhum pedido encontrado com esse filtro.'
+    : (abaPedidosAtual === 'pendentes' ? 'Nenhum pedido pendente no momento.' : 'Nenhum pedido resolvido ainda.');
 
   area.innerHTML = lista.length
     ? `<div class="fila-pedidos">${lista.map(renderizarPedidoLinha).join('')}</div>`
-    : `<div class="fila-vazia"><div class="fila-vazia-icone">✓</div><strong>${vazia}</strong><span>${abaPedidosAtual === 'pendentes' ? 'Novos pedidos, reservas e vendas aparecerão aqui.' : 'Vendas após 48 horas e cancelamentos aparecerão aqui.'}</span></div>`;
+    : `<div class="fila-vazia"><div class="fila-vazia-icone">✓</div><strong>${vazia}</strong><span>${filtroPedidosAtivo() ? 'Tente outro termo de busca.' : (abaPedidosAtual === 'pendentes' ? 'Novos pedidos, reservas e vendas aparecerão aqui.' : 'Vendas após 48 horas e cancelamentos aparecerão aqui.')}</span></div>`;
 
   area.querySelectorAll('.pedido-linha').forEach(btn => {
     btn.addEventListener('click', () => abrirDetalhesPedido(Number(btn.dataset.pedidoId)));
@@ -237,6 +288,8 @@ async function iniciarPedidos() {
   }
   document.getElementById('areaPedidosPagina').style.display = 'block';
   montarAbas();
+  montarFiltroPedidos();
   await carregarPedidosAdmin();
+  await marcarPedidosComoVistos();
 }
 iniciarPedidos();

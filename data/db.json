@@ -6,18 +6,89 @@
       "email": "admin@brechocuritiba.com",
       "password": "$2a$10$f/puCUVSX6Jakr0MHuZgb.EZ7qgyIIPLnu4f9m2DLk4yVO.o3y7IS",
       "isAdmin": true,
+      "createdAt": "2026-09-15T15:25:49.677Z",
+      "lastPedidosSeenAt": "2026-09-25T17:04:28.238Z"
+    }
+  ],
+  "products": [
+    {
+      "id": 2,
+      "name": "Jaqueta Jeans Vintage",
+      "description": "Jaqueta jeans clássica, estado excelente, poucos usos.",
+      "price": 89.9,
+      "category": "Jaquetas",
+      "sizes": {
+        "PP": 0,
+        "P": 2,
+        "M": 3,
+        "G": 1,
+        "GG": 0
+      },
+      "images": [],
+      "featured": true,
+      "createdAt": "2026-09-15T15:25:49.677Z"
+    },
+    {
+      "id": 3,
+      "name": "Vestido Floral Anos 90",
+      "description": "Vestido leve, estampa floral, ótimo para o verão.",
+      "price": 64.9,
+      "category": "Vestidos",
+      "sizes": {
+        "PP": 1,
+        "P": 2,
+        "M": 0,
+        "G": 0,
+        "GG": 0
+      },
+      "images": [],
+      "featured": true,
+      "createdAt": "2026-09-15T15:25:49.677Z"
+    },
+    {
+      "id": 4,
+      "name": "Camisa Social Listrada",
+      "description": "Camisa social em ótimo estado, tecido leve.",
+      "price": 39.9,
+      "category": "Camisas",
+      "sizes": {
+        "PP": 0,
+        "P": 1,
+        "M": 4,
+        "G": 2,
+        "GG": 1
+      },
+      "images": [],
+      "featured": false,
       "createdAt": "2026-09-15T15:25:49.677Z"
     }
   ],
-  "products": [],
   "favorites": [],
   "cart": [],
   "settings": {
     "whatsapp": "5541999999999",
     "instagram": "https://instagram.com/",
-    "logoUrl": "/uploads/logo/logo-1790089167648.png",
-    "nomeLoja": "Brechó Curitiba"
+    "logoUrl": "/img/logo-padrao.svg",
+    "nomeLoja": "Brechó Curitiba",
+    "categorias": [
+      "Calça",
+      "Camisa",
+      "Blusa",
+      "Bolsa",
+      "Acessórios",
+      "Jaquetas",
+      "Corset",
+      "Shorts",
+      "Saia",
+      "Bermuda",
+      "Vestidos",
+      "Casacos",
+      "Tricô",
+      "Básicas",
+      "Calçados",
+      "Outros"
+    ]
   },
-  "nextId": 8,
+  "nextId": 5,
   "orders": []
 }

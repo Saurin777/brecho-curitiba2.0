@@ -1,5 +1,151 @@
 let produtosAdmin = [];
 let idsSelecionados = new Set();
+let categoriasAdmin = [];
+
+function renderizarCategoriasAdmin(valorAtual) {
+  const select = document.getElementById('categoria');
+  if (!select) return;
+  select.innerHTML = '<option value="">Selecione...</option>' + categoriasAdmin.map(c => `<option value="${escaparHtml(c)}">${escaparHtml(c)}</option>`).join('');
+  if (valorAtual && !categoriasAdmin.includes(valorAtual)) select.insertAdjacentHTML('beforeend', `<option value="${escaparHtml(valorAtual)}">${escaparHtml(valorAtual)} (categoria atual)</option>`);
+  select.value = valorAtual || '';
+}
+
+function renderizarEditorCategorias() {
+  document.getElementById('listaEdicaoCategorias').innerHTML = categoriasAdmin.map((c, i) => `<div class="categoria-editavel"><span>${escaparHtml(c)}</span><button type="button" class="btn-remover-categoria" data-index="${i}" aria-label="Excluir ${escaparHtml(c)}">×</button></div>`).join('');
+  document.querySelectorAll('.btn-remover-categoria').forEach(btn => btn.addEventListener('click', () => {
+    categoriasAdmin.splice(Number(btn.dataset.index), 1); renderizarEditorCategorias();
+  }));
+}
+
+
+// ===== Clientes (somente administrador) =====
+let clientesAdmin = [];
+
+function escaparAtributo(valor) {
+  return escaparHtml(valor).replace(/`/g, '&#96;');
+}
+
+function formatarDataCadastro(data) {
+  if (!data) return '-';
+  const d = new Date(data);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatarCelularAdmin(phone) {
+  if (!phone) return '-';
+  const n = String(phone).replace(/\D/g, '');
+  if (n.length === 11) return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
+  if (n.length === 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
+  return n;
+}
+
+function renderizarLinhaCliente(cliente) {
+  const contato = cliente.email || cliente.phone || '-';
+  return `
+    <tr data-cliente-id="${cliente.id}">
+      <td><strong>${escaparHtml(cliente.name)}</strong></td>
+      <td>${escaparHtml(cliente.email || '-')}</td>
+      <td>${escaparHtml(formatarCelularAdmin(cliente.phone))}</td>
+      <td>${formatarDataCadastro(cliente.createdAt)}</td>
+      <td class="acoes-linha">
+        <button type="button" class="btn btn-secundario btn-editar-cliente" data-id="${cliente.id}">Editar</button>
+        <button type="button" class="btn btn-perigo btn-excluir-cliente" data-id="${cliente.id}">Excluir</button>
+      </td>
+    </tr>`;
+}
+
+function abrirEditorCliente(cliente) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay-confirmacao overlay-editor-cliente';
+  overlay.innerHTML = `
+    <div class="caixa-confirmacao caixa-editor-cliente">
+      <h2>Editar cliente</h2>
+      <p class="cliente-editor-subtitulo">Atualize os dados usados para entrar na conta.</p>
+      <form id="formEditarCliente" class="form-editor-cliente">
+        <div class="campo"><label for="editarClienteNome">Nome</label><input id="editarClienteNome" type="text" maxlength="100" value="${escaparAtributo(cliente.name)}" required></div>
+        <div class="grid-2">
+          <div class="campo"><label for="editarClienteEmail">E-mail</label><input id="editarClienteEmail" type="email" value="${escaparAtributo(cliente.email || '')}" placeholder="cliente@email.com"></div>
+          <div class="campo"><label for="editarClientePhone">Celular</label><input id="editarClientePhone" type="tel" value="${escaparAtributo(cliente.phone || '')}" placeholder="(41) 99999-9999"></div>
+        </div>
+        <p class="cliente-editor-ajuda">A conta precisa ter pelo menos um contato: e-mail ou celular.</p>
+        <div class="acoes-confirmacao">
+          <button type="button" class="btn btn-outline" id="btnCancelarEditorCliente">Cancelar</button>
+          <button type="submit" class="btn btn-primario">Salvar alterações</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('mostrar'));
+
+  const fechar = () => {
+    overlay.classList.remove('mostrar');
+    setTimeout(() => overlay.remove(), 180);
+  };
+  overlay.querySelector('#btnCancelarEditorCliente').addEventListener('click', fechar);
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+  overlay.querySelector('#formEditarCliente').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = e.currentTarget.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      await apiFetch(`/api/usuarios/${cliente.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: document.getElementById('editarClienteNome').value.trim(),
+          email: document.getElementById('editarClienteEmail').value.trim(),
+          phone: document.getElementById('editarClientePhone').value.trim()
+        })
+      });
+      fechar();
+      mostrarNotificacao('Cliente atualizado com sucesso!');
+      await carregarClientesAdmin();
+    } catch (err) {
+      mostrarNotificacao(err.message, 'erro');
+      btn.disabled = false;
+    }
+  });
+}
+
+async function excluirCliente(id) {
+  const cliente = clientesAdmin.find(c => Number(c.id) === Number(id));
+  if (!cliente) return;
+  const confirmado = await confirmarAcao(
+    `Excluir a conta de ${escaparHtml(cliente.name)}? O acesso será removido e esta ação não pode ser desfeita.`,
+    'Excluir cliente'
+  );
+  if (!confirmado) return;
+  try {
+    await apiFetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+    mostrarNotificacao('Cliente excluído com sucesso!');
+    await carregarClientesAdmin();
+  } catch (err) {
+    mostrarNotificacao(err.message, 'erro');
+  }
+}
+
+async function carregarClientesAdmin() {
+  const corpo = document.getElementById('corpoTabelaClientes');
+  if (!corpo) return;
+  try {
+    clientesAdmin = await apiFetch('/api/usuarios');
+    const vazio = document.getElementById('clientesVazio');
+    corpo.innerHTML = clientesAdmin.map(renderizarLinhaCliente).join('');
+    if (vazio) vazio.style.display = clientesAdmin.length ? 'none' : 'block';
+
+    corpo.querySelectorAll('.btn-editar-cliente').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cliente = clientesAdmin.find(c => Number(c.id) === Number(btn.dataset.id));
+        if (cliente) abrirEditorCliente(cliente);
+      });
+    });
+    corpo.querySelectorAll('.btn-excluir-cliente').forEach(btn => {
+      btn.addEventListener('click', () => excluirCliente(btn.dataset.id));
+    });
+  } catch (err) {
+    mostrarNotificacao(err.message, 'erro');
+  }
+}
 
 // ===== Configuração de tamanhos por categoria =====
 const CATEGORIAS_SEM_TAMANHO = ['Bolsa', 'Acessórios'];
@@ -300,7 +446,6 @@ async function salvarProduto(e) {
     }
     limparFormularioProduto();
     await carregarProdutosAdmin();
-    if (!id) window.irParaAbaAdmin('pecasCadastradas');
   } catch (err) {
     mostrarNotificacao(err.message, 'erro');
   }
@@ -340,6 +485,27 @@ async function salvarConfiguracoes(e) {
   }
 }
 
+async function salvarAcessoAdmin(e) {
+  e.preventDefault();
+
+  const email = document.getElementById('adminNovoEmail').value.trim();
+  const senha = document.getElementById('adminNovaSenha').value;
+
+  try {
+    await apiFetch('/api/configuracoes/admin', {
+      method: 'PUT',
+      body: JSON.stringify({ email, senha })
+    });
+    document.getElementById('formAdminAcesso').reset();
+    const sucesso = document.getElementById('mensagemAdminAcessoSucesso');
+    sucesso.textContent = 'Login e senha do administrador atualizados com sucesso!';
+    sucesso.style.display = 'block';
+    setTimeout(() => { sucesso.style.display = 'none'; }, 3000);
+  } catch (err) {
+    mostrarNotificacao(err.message, 'erro');
+  }
+}
+
 function preencherFormularioConfiguracoes() {
   document.getElementById('nomeLoja').value = configuracoesSite.nomeLoja || '';
   document.getElementById('whatsapp').value = configuracoesSite.whatsapp || '';
@@ -350,7 +516,8 @@ function ativarAbas() {
   const mapaAbas = {
     novaPeca: 'secaoNovaPeca',
     pecasCadastradas: 'secaoPecasCadastradas',
-    configuracoes: 'secaoConfiguracoes'
+    configuracoes: 'secaoConfiguracoes',
+    clientes: 'secaoClientes'
   };
 
   window.irParaAbaAdmin = function irParaAbaAdmin(nomeAba) {
@@ -385,6 +552,7 @@ async function iniciarAdmin() {
   ativarAbas();
   ativarSelecaoLote();
   await carregarProdutosAdmin();
+  await carregarClientesAdmin();
   preencherFormularioConfiguracoes();
 
   document.getElementById('formProduto').addEventListener('submit', salvarProduto);
@@ -395,7 +563,28 @@ async function iniciarAdmin() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
   document.getElementById('formConfiguracoes').addEventListener('submit', salvarConfiguracoes);
+  document.getElementById('formAdminAcesso').addEventListener('submit', salvarAcessoAdmin);
+  document.getElementById('btnAtualizarClientes').addEventListener('click', carregarClientesAdmin);
   document.getElementById('categoria').addEventListener('change', (e) => renderizarAreaTamanhos(e.target.value));
+  categoriasAdmin = configuracoesSite.categorias || [];
+  renderizarCategoriasAdmin();
+  document.getElementById('btnEditarCategorias').addEventListener('click', () => {
+    const editor = document.getElementById('editorCategorias'); editor.hidden = !editor.hidden;
+    if (!editor.hidden) renderizarEditorCategorias();
+  });
+  document.getElementById('btnAdicionarCategoria').addEventListener('click', () => {
+    const input = document.getElementById('novaCategoria'); const nome = input.value.trim();
+    if (!nome) return;
+    if (categoriasAdmin.some(c => c.toLocaleLowerCase() === nome.toLocaleLowerCase())) return mostrarNotificacao('Essa categoria já existe.', 'erro');
+    categoriasAdmin.push(nome); input.value = ''; renderizarEditorCategorias();
+  });
+  document.getElementById('btnSalvarCategorias').addEventListener('click', async () => {
+    try {
+      configuracoesSite = await apiFetch('/api/configuracoes', { method: 'PUT', body: JSON.stringify({ categorias: categoriasAdmin }) });
+      renderizarCategoriasAdmin(document.getElementById('categoria').value);
+      mostrarNotificacao('Categorias salvas com sucesso!');
+    } catch (err) { mostrarNotificacao(err.message, 'erro'); }
+  });
 }
 
 iniciarAdmin();

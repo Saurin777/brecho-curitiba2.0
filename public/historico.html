@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Histórico de compras - Brechó Curitiba</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="header" id="cabecalho"></header>
+
+  <main class="container">
+    <h1 class="titulo-secao" id="tituloHistorico">Histórico de compras</h1>
+    <p class="subtitulo-secao" id="subtituloHistorico">Seus pedidos já comprados ou cancelados</p>
+
+    <div id="areaHistoricoPagina" style="display:none;">
+      <div id="resumoHistorico" class="resumo-pedidos-grid"></div>
+      <div class="filtro-pedidos" id="filtroHistorico" style="display:none;">
+        <div class="campo-busca campo-filtro-pedidos">
+          <input type="search" id="filtroHistoricoPeca" placeholder="Filtrar por nome da peça..." autocomplete="off">
+        </div>
+        <div class="campo-busca campo-filtro-pedidos">
+          <input type="search" id="filtroHistoricoCliente" placeholder="Filtrar por nome do cliente..." autocomplete="off">
+        </div>
+        <button type="button" class="link-limpar" id="btnLimparFiltroHistorico">Limpar filtro</button>
+      </div>
+      <div id="areaHistorico"></div>
+    </div>
+
+    <div id="avisoLogin" class="aviso-admin" style="display:none;">
+      Entre na sua conta para ver o histórico de compras.
+    </div>
+  </main>
+
+  <div id="rodape"></div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/status.js"></script>
+  <script src="/js/historico.js"></script>
+</body>
+</html>

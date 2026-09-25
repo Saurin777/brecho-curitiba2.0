@@ -25,7 +25,7 @@ function renderizarCardProduto(produto) {
     : '';
 
   return `
-    <div class="card-produto ${ehDestaque ? 'card-produto--destaque' : ''} ${produto.vendida ? 'card-produto--vendida' : ''}" data-id="${produto.id}">
+    <div class="card-produto ${ehDestaque ? 'card-produto--destaque' : ''} ${produto.vendida ? 'card-produto--vendida' : ''}" data-id="${produto.id}" ${produto.vendida ? '' : `role="link" tabindex="0" aria-label="Ver detalhes de ${escaparHtml(produto.name)}"`}>
       <div class="imagem-wrap">
         ${imagem}
         ${produto.vendida ? `<div class="camada-vendida"></div>` : ''}
@@ -38,7 +38,7 @@ function renderizarCardProduto(produto) {
       <div class="info">
         <div class="categoria">${produto.category || ''}</div>
         <div class="nome">${produto.name}</div>
-        ${blocoPreco(produto)}
+        <div id="precoCard-${produto.id}">${precoComCronometroCard(produto)}</div>
         ${produto.vendida ? '' : `<a href="/produto.html?id=${produto.id}" class="btn btn-primario btn-bloco">Ver detalhes</a>`}
       </div>
     </div>
@@ -46,6 +46,11 @@ function renderizarCardProduto(produto) {
 }
 
 function ativarAcoesCard(container) {
+  container.querySelectorAll('.card-produto:not(.card-produto--vendida)').forEach(card => {
+    const abrir = () => { window.location.href = `/produto.html?id=${card.dataset.id}`; };
+    card.addEventListener('click', e => { if (!e.target.closest('a, button')) abrir(); });
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
+  });
   container.querySelectorAll('.card-produto .btn-bloco').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -330,6 +335,17 @@ async function iniciarFeed() {
   montarListaCategorias();
   ativarControlesFiltro();
   aplicarFiltros();
+  setInterval(async () => {
+    try {
+      const [destaquesNovos, todosNovos] = await Promise.all([
+        apiFetch('/api/produtos?featured=1'), apiFetch('/api/produtos')
+      ]);
+      produtosDestaque = destaquesNovos || [];
+      todosProdutos = todosNovos || [];
+      montarListaCategorias();
+      aplicarFiltros();
+    } catch (e) { /* mantém a vitrine atual se a rede oscilar */ }
+  }, 5000);
 }
 
 iniciarFeed();

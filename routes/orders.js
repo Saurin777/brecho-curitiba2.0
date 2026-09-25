@@ -1,6 +1,7 @@
 const express = require('express');
 const { readDB, writeDB, nextId } = require('../db');
 const { exigirLogin, exigirAdmin } = require('../middleware/auth');
+const { estaVendida, estoqueDoTamanho, estoqueTotal, temGradeDeTamanhos } = require('../estoque');
 
 const router = express.Router();
 const STATUS_VALIDOS = ['aguardando', 'reservado', 'vendido', 'cancelado'];
@@ -9,6 +10,26 @@ const VENDA_PARA_RESOLVER_MS = 48 * 60 * 60 * 1000;
 function statusExigeBaixa(status) {
   return status === 'reservado' || status === 'vendido';
 }
+// Confere se ainda há estoque suficiente para dar baixa no pedido.
+// Devolve uma mensagem de erro ou null se estiver tudo certo.
+function verificarEstoquePedido(db, pedido) {
+  const precisa = {};
+  for (const item of pedido.items) {
+    const chave = `${item.productId}|${item.size}`;
+    precisa[chave] = (precisa[chave] || 0) + item.quantity;
+  }
+  for (const chave of Object.keys(precisa)) {
+    const [idProduto, tamanho] = chave.split('|');
+    const produto = db.products.find(p => p.id === Number(idProduto));
+    if (!produto) continue;
+    const disponivel = estoqueDoTamanho(produto, tamanho);
+    if (disponivel !== null && disponivel < precisa[chave]) {
+      return `Estoque insuficiente: "${produto.name}" tamanho ${tamanho} tem ${disponivel} em estoque e o pedido pede ${precisa[chave]}.`;
+    }
+  }
+  return null;
+}
+
 function aplicarBaixaEstoque(db, pedido) {
   pedido.items.forEach(item => {
     const produto = db.products.find(p => p.id === item.productId);
@@ -66,10 +87,10 @@ function serializarPedido(pedido) {
   return { ...pedido, resolvido };
 }
 
-router.get('/', exigirAdmin, (req, res) => {
-  const db = readDB();
-  if (atualizarResolvidos(db)) writeDB(db);
-  const pedidos = [...db.orders]
+// Monta a lista completa de pedidos já com foto/descrição resolvidas
+// (usado tanto pela fila de Pedidos/Vendas do admin quanto pelo Histórico de compras).
+function montarPedidosCompletos(db) {
+  return [...db.orders]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .map(pedido => {
       // pedidos antigos podem não ter guardado a foto; recupera do produto para o detalhe.
@@ -85,7 +106,52 @@ router.get('/', exigirAdmin, (req, res) => {
       });
       return serializarPedido({ ...pedido, items: itens });
     });
+}
+
+router.get('/', exigirAdmin, (req, res) => {
+  const db = readDB();
+  if (atualizarResolvidos(db)) writeDB(db);
+  res.json(montarPedidosCompletos(db));
+});
+
+// Histórico de compras: exige login. Cliente comum só vê os próprios pedidos;
+// administrador vê os pedidos de todos os clientes (o front separa por nome).
+router.get('/historico', exigirLogin, (req, res) => {
+  const db = readDB();
+  if (atualizarResolvidos(db)) writeDB(db);
+  let pedidos = montarPedidosCompletos(db);
+  if (!req.user.isAdmin) {
+    pedidos = pedidos.filter(p => p.userId === req.user.id);
+  }
   res.json(pedidos);
+});
+
+// Contagem de pedidos ainda não vistos: para o administrador, conta pedidos
+// novos de qualquer cliente; para o cliente comum, conta só os próprios
+// pedidos. Fica somando até o usuário abrir a aba (ver /marcar-visto).
+router.get('/notificacoes', exigirLogin, (req, res) => {
+  const db = readDB();
+  const usuario = db.users.find(u => u.id === req.user.id);
+  const desde = usuario && usuario.lastPedidosSeenAt ? new Date(usuario.lastPedidosSeenAt).getTime() : 0;
+
+  let pedidos = db.orders;
+  if (!req.user.isAdmin) {
+    pedidos = pedidos.filter(p => p.userId === req.user.id);
+  }
+  const contagem = pedidos.filter(p => new Date(p.createdAt).getTime() > desde).length;
+  res.json({ contagem });
+});
+
+// Marca os pedidos como vistos (chamado ao abrir "Pedidos/Vendas" ou
+// "Pedidos Pendentes") - o aviso some até chegar um pedido novo.
+router.post('/marcar-visto', exigirLogin, (req, res) => {
+  const db = readDB();
+  const usuario = db.users.find(u => u.id === req.user.id);
+  if (usuario) {
+    usuario.lastPedidosSeenAt = new Date().toISOString();
+    writeDB(db);
+  }
+  res.json({ ok: true });
 });
 
 router.post('/', exigirLogin, (req, res) => {
@@ -96,7 +162,7 @@ router.post('/', exigirLogin, (req, res) => {
   const items = [];
   itensCarrinho.forEach(c => {
     const produto = db.products.find(p => p.id === c.productId);
-    if (!produto || produto.soldAt) return;
+    if (!produto || estaVendida(produto)) return;
     items.push({
       productId: produto.id,
       productName: produto.name,
@@ -109,6 +175,24 @@ router.post('/', exigirLogin, (req, res) => {
     });
   });
   if (items.length === 0) return res.status(400).json({ erro: 'Os itens do seu carrinho não estão mais disponíveis.' });
+
+  // Confere o estoque de cada tamanho antes de fechar o pedido
+  const somaPorTamanho = {};
+  for (const item of items) {
+    const chave = `${item.productId}|${item.size}`;
+    somaPorTamanho[chave] = (somaPorTamanho[chave] || 0) + item.quantity;
+  }
+  for (const item of items) {
+    const produto = db.products.find(p => p.id === item.productId);
+    const disponivel = estoqueDoTamanho(produto, item.size);
+    if (disponivel !== null && disponivel < somaPorTamanho[`${item.productId}|${item.size}`]) {
+      return res.status(409).json({
+        erro: disponivel <= 0
+          ? `"${item.productName}" no tamanho ${item.size} acabou. Remova do carrinho para continuar.`
+          : `"${item.productName}" no tamanho ${item.size} tem só ${disponivel} em estoque. Ajuste a quantidade no carrinho.`
+      });
+    }
+  }
 
   const total = items.reduce((soma, item) => soma + item.price * item.quantity, 0);
   const agora = new Date().toISOString();
@@ -144,6 +228,8 @@ router.put('/:id/status', exigirAdmin, (req, res) => {
 
   const precisaBaixa = statusExigeBaixa(status);
   if (precisaBaixa && !pedido.baixaEstoque) {
+    const erroEstoque = verificarEstoquePedido(db, pedido);
+    if (erroEstoque) return res.status(409).json({ erro: erroEstoque });
     aplicarBaixaEstoque(db, pedido);
     pedido.baixaEstoque = true;
   } else if (!precisaBaixa && pedido.baixaEstoque) {
@@ -162,46 +248,34 @@ router.put('/:id/status', exigirAdmin, (req, res) => {
   if (status === 'vendido') {
     pedido.soldAt = agora;
     // Venda é considerada resolvida imediatamente na fila de Pedidos/Vendas.
-    // A peça, porém, continua visível na vitrine por 48h com o selo VENDIDA.
     pedido.resolvedAt = agora;
-
-    // Marca a peça como vendida no site por 48 horas.
-    pedido.items.forEach(item => {
-      const produto = db.products.find(p => p.id === item.productId);
-      if (produto) {
-        produto.soldAt = agora;
-        produto.soldOrderId = pedido.id;
-      }
-    });
   } else if (status === 'cancelado') {
     pedido.resolvedAt = agora;
-
-    // Se uma venda for cancelada, a peça volta completamente ao estado
-    // anterior à venda: fica disponível novamente e perde o selo VENDIDA.
-    // O estoque já foi revertido acima quando havia baixa registrada.
-    if (pedido.soldAt) {
-      pedido.items.forEach(item => {
-        const produto = db.products.find(p => p.id === item.productId);
-        if (produto && produto.soldOrderId === pedido.id) {
-          produto.soldAt = null;
-          produto.soldOrderId = null;
-        }
-      });
-      pedido.soldAt = null;
-    }
+    pedido.soldAt = null;
   } else {
     pedido.resolvedAt = null;
-    if (pedido.soldAt) {
-      pedido.items.forEach(item => {
-        const produto = db.products.find(p => p.id === item.productId);
-        if (produto && produto.soldOrderId === pedido.id) {
-          produto.soldAt = null;
-          produto.soldOrderId = null;
-        }
-      });
-      pedido.soldAt = null;
-    }
+    pedido.soldAt = null;
   }
+
+  // Selo VENDIDO na vitrine: só entra quando a venda zerou o estoque de TODOS os
+  // tamanhos da peça. Se ainda sobrou unidade em algum tamanho, a peça continua
+  // disponível para outros clientes (só o tamanho que zerou fica desativado).
+  // Se a venda for cancelada/alterada (o estoque volta), o selo sai.
+  const idsTocados = [...new Set(pedido.items.map(item => item.productId))];
+  idsTocados.forEach(idProduto => {
+    const produto = db.products.find(p => p.id === idProduto);
+    if (!produto) return;
+    const semGrade = !temGradeDeTamanhos(produto);
+    const zerada = semGrade || estoqueTotal(produto) === 0;
+
+    if (status === 'vendido' && zerada) {
+      produto.soldAt = agora;
+      produto.soldOrderId = pedido.id;
+    } else if (produto.soldAt && (produto.soldOrderId === pedido.id || !zerada)) {
+      produto.soldAt = null;
+      produto.soldOrderId = null;
+    }
+  });
 
   atualizarResolvidos(db);
   writeDB(db);
